@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
 late List<CameraDescription> _cameras;
 
@@ -27,6 +29,7 @@ class MyApp extends StatelessWidget {
 
 // 메인 화면(카메라로 촬영)
 class CameraApp extends StatefulWidget {
+
   const CameraApp({super.key});
 
   @override
@@ -35,7 +38,6 @@ class CameraApp extends StatefulWidget {
 
 class _CameraAppState extends State<CameraApp> {
   late CameraController controller;
-  String decodeResult = "NULL";
   bool isPictureCapturing = false;
   double x = 0;
   double y = 0;
@@ -76,8 +78,8 @@ class _CameraAppState extends State<CameraApp> {
         body: Center(
           child: Column(
             children: [
-              Expanded(flex: 1, child: Container()),
-              Expanded(flex: 9, 
+              const SizedBox(height: 29),
+              Expanded(flex: 7,
                   child: CameraPreview(
                     controller,
                     child: GestureDetector(onTapDown: (TapDownDetails details) {
@@ -123,8 +125,7 @@ class _CameraAppState extends State<CameraApp> {
                       } : null,
                       icon: Image.asset("assets/images/photo_capture.png")
                   )
-              ),
-              Expanded(child: Text("Result : $decodeResult"))
+              )
             ],
           ),
         )
@@ -143,6 +144,23 @@ class ChkAndSend extends StatefulWidget {
 }
 
 class _ChkAndSendState extends State<ChkAndSend> {
+  String scanResult = "";
+
+  Future<Object> uploadImage() async {
+    // 주소
+    final uri = Uri.parse('http://121.137.148.133:5000/test');
+    var request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath('image', widget.imagePath));
+    print("Image sent");
+    var response = await request.send();
+    if (response.statusCode == 200) {
+      print("Image scanned successfully!");
+      return response.stream.bytesToString();
+    } else {
+      throw ('Image upload failed with status: ${response.statusCode}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,6 +171,7 @@ class _ChkAndSendState extends State<ChkAndSend> {
               width: MediaQuery.of(context).size.width,
               child: Image.file( File(widget.imagePath) , fit: BoxFit.fitHeight)
           ),
+          Text("Result : $scanResult",style: TextStyle(fontSize: 20)),
           Expanded(
             child: Row(
               children: [
@@ -163,10 +182,32 @@ class _ChkAndSendState extends State<ChkAndSend> {
                       child: const Text("다시 찍기",style: TextStyle(color: Colors.black)),
                     )
                 ),
-                VerticalDivider(color: Color(0x676767FF),width: 2),
+                const VerticalDivider(color: Color(0x676767FF),width: 2),
                 Expanded(
                     child: TextButton(
-                      onPressed: () {  },
+                      onPressed: () async {
+                        // 응답 받아 오는 동안 로딩 창 생성
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false, // 다이얼로그를 탭해도 닫히지 않도록 설정
+                          builder: (context) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                        );
+                        uploadImage().then((response) {
+                          Navigator.pop(context); // 로딩 다이얼로그 닫기
+                          print(response);
+                          setState(() {
+                            scanResult = response.toString();
+                          });
+                        }).catchError((error) {
+                          Navigator.pop(context);
+                          // 에러 처리 로직
+                          print(error);
+                        });
+                      },
                       child: const Text("스캔 시작",style: TextStyle(color: Colors.black)),
                     )
                 )
