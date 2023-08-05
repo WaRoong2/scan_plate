@@ -1,16 +1,7 @@
-# scan_plate
+이재영 씨()의 번호판 인식 AI 생성 프로젝트를 돕기 위해 만들어보았습니다.
 
-A new Flutter project.
+기본적으로 카메라로 사진을 찍는 기능을 갖추고 있으며,
 
-## Getting Started
+http 통신을 통해 서버로 사진을 보내고,
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+판독 결과를 받아오게 됩니다.
