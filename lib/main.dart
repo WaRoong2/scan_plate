@@ -36,6 +36,9 @@ class CameraApp extends StatefulWidget {
 class _CameraAppState extends State<CameraApp> {
   late CameraController controller;
   String decodeResult = "NULL";
+  bool isPictureCapturing = false;
+  double x = 0;
+  double y = 0;
 
   @override
   void initState() {
@@ -50,10 +53,8 @@ class _CameraAppState extends State<CameraApp> {
       if (e is CameraException) {
         switch (e.code) {
           case 'CameraAccessDenied':
-          // Handle access errors here.
             break;
           default:
-          // Handle other errors here.
             break;
         }
       }
@@ -76,28 +77,50 @@ class _CameraAppState extends State<CameraApp> {
           child: Column(
             children: [
               Expanded(flex: 1, child: Container()),
-              Expanded(flex: 9, child: CameraPreview(controller)),
+              Expanded(flex: 9, 
+                  child: CameraPreview(
+                    controller,
+                    child: GestureDetector(onTapDown: (TapDownDetails details) {
+                      x = details.localPosition.dx;
+                      y = details.localPosition.dy;
+
+                      double fullWidth = MediaQuery.of(context).size.width;
+                      double cameraHeight = fullWidth * controller.value.aspectRatio;
+
+                      double xp = x / fullWidth;
+                      double yp = y / cameraHeight;
+
+                      Offset point = Offset(xp,yp);
+                      controller.setFocusPoint(point);
+                    },),
+                  )
+              ),
               Expanded(
                   flex: 1,
                   child: IconButton(
-                      onPressed: () async {
+                      onPressed: !isPictureCapturing ? () async {
+                        isPictureCapturing = true;
                         // 경로 생성
                         final path = join(
                             ( await getTemporaryDirectory() ).path,
                             '${DateTime.now()}.png'
                         );
                         // 사진 촬영
+                        // 포커스 모드 고정 안하면 STATE_WAITING_FOCUS 뜨면서 엄청 오래걸림
+                        controller.setFocusMode(FocusMode.locked);
                         XFile picture = await controller.takePicture();
+                        controller.setFocusMode(FocusMode.auto);
                         // 사진 저장
                         picture.saveTo(path);
                         if (!mounted) return;
+                        isPictureCapturing = false;
                         // 검사 화면으로 전환
                         Navigator.push(context,
                             MaterialPageRoute(
                                 builder: ( context ) => ChkAndSend( imagePath: path )
                             )
                         );
-                      },
+                      } : null,
                       icon: Image.asset("assets/images/photo_capture.png")
                   )
               ),
